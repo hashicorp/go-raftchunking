@@ -113,3 +113,7 @@ func (c *ChunkingFSM) Snapshot() (raft.FSMSnapshot, error) {
 func (c *ChunkingFSM) Restore(rc io.ReadCloser) error {
 	return c.underlying.Restore(rc)
 }
+
+func (c *ChunkingFSM) Underlying() raft.FSM {
+	return c.underlying
+}
