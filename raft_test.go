@@ -5,6 +5,7 @@ import (
 	"io"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -55,11 +56,16 @@ func TestRaftStability_Large_Values(t *testing.T) {
 
 	// Write data blocks in goroutines
 	var wg sync.WaitGroup
+	var numStarted uint32
 	for _, data := range dataBlocks {
 		// Should be able to apply
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			atomic.AddUint32(&numStarted, 1)
+			for atomic.LoadUint32(&numStarted) != uint32(len(dataBlocks)) {
+				time.Sleep(time.Microsecond)
+			}
 			future := ChunkingApply(data, nil, 5*time.Second, leader.ApplyWithLog)
 			if err := future.Error(); err != nil {
 				c.FailNowf("[ERR] err: %v", err)
