@@ -40,8 +40,8 @@ func NewChunkingFSM(underlying raft.FSM) *ChunkingFSM {
 // Apply applies the log, handling chunking as needed. The return value will
 // either be an error or whatever is returned from the underlying Apply.
 func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
-	// Not chunking, pass through
-	if l.ChunkInfo == nil {
+	// Not chunking or wrong type, pass through
+	if l.Type != raft.LogCommand || l.ChunkInfo == nil {
 		return c.underlying.Apply(l)
 	}
 
@@ -82,9 +82,11 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 				term = chunk.term
 			}
 			if chunk.seqNum != i {
+				delete(c.opMap, opID)
 				return ErrMissingChunk
 			}
 			if chunk.term != term {
+				delete(c.opMap, opID)
 				return ErrTermMismatch
 			}
 			finalData = append(finalData, chunk.data...)
@@ -98,6 +100,7 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 			Data:  finalData,
 		}
 
+		delete(c.opMap, opID)
 		return c.Apply(logToApply)
 	}
 
