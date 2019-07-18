@@ -1,4 +1,4 @@
-package middleware
+package chunking
 
 import (
 	"bytes"

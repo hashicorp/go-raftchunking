@@ -1,4 +1,4 @@
-module github.com/hashicorp/go-raft-middleware
+module github.com/hashicorp/go-raft-chunking
 
 go 1.12
 
