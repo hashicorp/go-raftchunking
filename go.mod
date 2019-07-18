@@ -1,4 +1,4 @@
-module github.com/hashicorp/go-raft-chunking
+module github.com/hashicorp/go-raftchunking
 
 go 1.12
 

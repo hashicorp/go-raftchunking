@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option go_package = "chunking";
+option go_package = "raftchunking";
 
-package github_com_hashicorp_go_raft_chunking;
+package github_com_hashicorp_go_raftchunking;
 
 message ChunkInfo {
 	// OpNum is the ID of the op, used to ensure values are applied to the
