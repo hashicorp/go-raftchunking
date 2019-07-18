@@ -8,6 +8,8 @@ import (
 	"io"
 	"time"
 
+	proto "github.com/golang/protobuf/proto"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/raft"
 )
 
@@ -69,8 +71,9 @@ type ApplyFunc func(raft.Log, time.Duration) raft.ApplyFuture
 // not total. The return value is a future whose Error() will return only when
 // all underlying Apply futures have had Error() return. Note that any error
 // indicates that the entire operation will not be applied, assuming the
-// correct FSM wrapper is used.
-func ChunkingApply(cmd []byte, timeout time.Duration, applyFunc ApplyFunc) raft.ApplyFuture {
+// correct FSM wrapper is used. If extensions is passed in, it will be set as
+// the Extensions value on the Apply once all chunks are received.
+func ChunkingApply(cmd, extensions []byte, timeout time.Duration, applyFunc ApplyFunc) raft.ApplyFuture {
 	// Create an op ID
 	rb := make([]byte, 8)
 	n, err := rand.Read(rb)
@@ -113,13 +116,21 @@ func ChunkingApply(cmd []byte, timeout time.Duration, applyFunc ApplyFunc) raft.
 	}
 
 	for i, chunk := range byteChunks {
+		chunkInfo := &ChunkInfo{
+			OpNum:       id,
+			SequenceNum: uint32(i),
+			NumChunks:   uint32(len(byteChunks)),
+		}
+		if i == len(byteChunks)-1 {
+			chunkInfo.NextExtensions = extensions
+		}
+		chunkBytes, err := proto.Marshal(chunkInfo)
+		if err != nil {
+			return errorFuture{err: errwrap.Wrapf("error marshaling chunk info: {{err}}", err)}
+		}
 		logs = append(logs, raft.Log{
-			Data: chunk,
-			ChunkInfo: &raft.ChunkInfo{
-				OpID:        id,
-				SequenceNum: i,
-				NumChunks:   len(byteChunks),
-			},
+			Data:       chunk,
+			Extensions: chunkBytes,
 		})
 	}
 

@@ -4,13 +4,15 @@ import (
 	"errors"
 	"io"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/raft"
 )
 
 var (
 	ErrTermMismatch = errors.New("term mismatch during reconstruction of chunks, please resubmit")
 
-	ErrInvalidOpID = errors.New("no op ID found when reconstructing chunks")
+	ErrInvalidOpNum = errors.New("no op num found when reconstructing chunks")
 
 	ErrNoExistingChunks = errors.New("no existing chunks but non-zero sequence num")
 
@@ -21,7 +23,7 @@ var (
 
 type chunkInfo struct {
 	term   uint64
-	seqNum int
+	seqNum uint32
 	data   []byte
 }
 
@@ -41,19 +43,24 @@ func NewChunkingFSM(underlying raft.FSM) *ChunkingFSM {
 // either be an error or whatever is returned from the underlying Apply.
 func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 	// Not chunking or wrong type, pass through
-	if l.Type != raft.LogCommand || l.ChunkInfo == nil {
+	if l.Type != raft.LogCommand || l.Extensions == nil {
 		return c.underlying.Apply(l)
 	}
 
-	opID := l.ChunkInfo.OpID
-	seqNum := l.ChunkInfo.SequenceNum
+	var ci ChunkInfo
+	if err := proto.Unmarshal(l.Extensions, &ci); err != nil {
+		return errwrap.Wrapf("error unmarshaling chunk info: {{err}}", err)
+	}
 
-	if opID == 0 {
-		return ErrInvalidOpID
+	opNum := ci.OpNum
+	seqNum := ci.SequenceNum
+
+	if opNum == 0 {
+		return ErrInvalidOpNum
 	}
 
 	// Look up existing chunks
-	chunks, ok := c.opMap[opID]
+	chunks, ok := c.opMap[opNum]
 	if !ok {
 		if seqNum != 0 {
 			return ErrNoExistingChunks
@@ -61,8 +68,8 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 	}
 
 	// Do early detection of a loss or other problem
-	if seqNum != len(chunks) {
-		delete(c.opMap, opID)
+	if int(seqNum) != len(chunks) {
+		delete(c.opMap, opNum)
 		return ErrSequenceNumberMismatch
 	}
 
@@ -72,7 +79,7 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 		data:   l.Data,
 	})
 
-	if l.ChunkInfo.SequenceNum == l.ChunkInfo.NumChunks-1 {
+	if ci.SequenceNum == ci.NumChunks-1 {
 		// Run through and reconstruct the data
 		finalData := make([]byte, 0, len(chunks)*raft.SuggestedMaxDataSize)
 
@@ -81,12 +88,12 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 			if i == 0 {
 				term = chunk.term
 			}
-			if chunk.seqNum != i {
-				delete(c.opMap, opID)
+			if chunk.seqNum != uint32(i) {
+				delete(c.opMap, opNum)
 				return ErrMissingChunk
 			}
 			if chunk.term != term {
-				delete(c.opMap, opID)
+				delete(c.opMap, opNum)
 				return ErrTermMismatch
 			}
 			finalData = append(finalData, chunk.data...)
@@ -94,18 +101,19 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 
 		// Use the latest log's values with the final data
 		logToApply := &raft.Log{
-			Index: l.Index,
-			Term:  l.Term,
-			Type:  l.Type,
-			Data:  finalData,
+			Index:      l.Index,
+			Term:       l.Term,
+			Type:       l.Type,
+			Data:       finalData,
+			Extensions: ci.NextExtensions,
 		}
 
-		delete(c.opMap, opID)
+		delete(c.opMap, opNum)
 		return c.Apply(logToApply)
 	}
 
 	// Otherwise, re-add to map and return
-	c.opMap[opID] = chunks
+	c.opMap[opNum] = chunks
 	return nil
 }
 

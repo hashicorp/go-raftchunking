@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	proto "github.com/golang/protobuf/proto"
 	"github.com/hashicorp/raft"
 	"github.com/kr/pretty"
 )
@@ -68,14 +69,22 @@ func TestFSM_ErrorConditions(t *testing.T) {
 
 	var m *MockFSM
 	var f *ChunkingFSM
+	var err error
 
-	// OpID of zero
+	// OpNum of zero
 	{
 		m = new(MockFSM)
 		f = NewChunkingFSM(m)
 
-		old := logs[1].ChunkInfo.OpID
-		logs[1].ChunkInfo.OpID = 0
+		old := logs[1].Extensions
+		var ci ChunkInfo
+		if err := proto.Unmarshal(logs[1].Extensions, &ci); err != nil {
+			t.Fatal(err)
+		}
+		ci.OpNum = 0
+		if logs[1].Extensions, err = proto.Marshal(&ci); err != nil {
+			t.Fatal(err)
+		}
 
 		var done bool
 		for i, l := range logs {
@@ -88,9 +97,9 @@ func TestFSM_ErrorConditions(t *testing.T) {
 			case error:
 				err := r.(error)
 				if i != 1 {
-					t.Fatalf("unexpected error at value %d: %v; chunk info is %s", i, err, pretty.Sprint(l.ChunkInfo))
+					t.Fatalf("unexpected error at value %d: %v; chunk info is %s", i, err, pretty.Sprint(ci))
 				}
-				if err != ErrInvalidOpID {
+				if err != ErrInvalidOpNum {
 					t.Fatalf("unexpected error: %v", err)
 				}
 				// Success
@@ -104,7 +113,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 			}
 		}
 
-		logs[1].ChunkInfo.OpID = old
+		logs[1].Extensions = old
 	}
 
 	// Invalid sequence number
@@ -112,8 +121,15 @@ func TestFSM_ErrorConditions(t *testing.T) {
 		m = new(MockFSM)
 		f = NewChunkingFSM(m)
 
-		old := logs[0].ChunkInfo.SequenceNum
-		logs[0].ChunkInfo.SequenceNum = 1
+		old := logs[0].Extensions
+		var ci ChunkInfo
+		if err := proto.Unmarshal(logs[0].Extensions, &ci); err != nil {
+			t.Fatal(err)
+		}
+		ci.SequenceNum = 1
+		if logs[0].Extensions, err = proto.Marshal(&ci); err != nil {
+			t.Fatal(err)
+		}
 
 		r := f.Apply(&(logs[0]))
 		if r == nil {
@@ -123,17 +139,24 @@ func TestFSM_ErrorConditions(t *testing.T) {
 			t.Fatal(r.(error))
 		}
 
-		logs[0].ChunkInfo.SequenceNum = old
+		logs[0].Extensions = old
 	}
 
 	// Mismatched sequence number, greater than or less than number of chunks
 	{
-		seqNumReplacement := func(seqNum int) {
+		seqNumReplacement := func(seqNum uint32) {
 			m = new(MockFSM)
 			f = NewChunkingFSM(m)
 
-			old := logs[1].ChunkInfo.SequenceNum
-			logs[1].ChunkInfo.SequenceNum = seqNum
+			old := logs[1].Extensions
+			var ci ChunkInfo
+			if err := proto.Unmarshal(logs[1].Extensions, &ci); err != nil {
+				t.Fatal(err)
+			}
+			ci.SequenceNum = seqNum
+			if logs[1].Extensions, err = proto.Marshal(&ci); err != nil {
+				t.Fatal(err)
+			}
 
 			var done bool
 			for i, l := range logs {
@@ -146,7 +169,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 				case error:
 					err := r.(error)
 					if i != 1 {
-						t.Fatalf("unexpected error at value %d: %v; chunk info is %s", i, err, pretty.Sprint(l.ChunkInfo))
+						t.Fatalf("unexpected error at value %d: %v; chunk info is %s", i, err, pretty.Sprint(ci))
 					}
 					if err != ErrSequenceNumberMismatch {
 						t.Fatalf("unexpected error: %v", err)
@@ -162,7 +185,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 				}
 			}
 
-			logs[1].ChunkInfo.SequenceNum = old
+			logs[1].Extensions = old
 		}
 
 		seqNumReplacement(3)
@@ -188,7 +211,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 			case error:
 				err := r.(error)
 				if i != len(logs)-1 {
-					t.Fatalf("unexpected error at value %d: %v; chunk info is %s", i, err, pretty.Sprint(l.ChunkInfo))
+					t.Fatalf("unexpected error at value %d: %v", i, err)
 				}
 				if err != ErrTermMismatch {
 					t.Fatalf("unexpected error: %v", err)
@@ -212,8 +235,15 @@ func TestFSM_ErrorConditions(t *testing.T) {
 		m = new(MockFSM)
 		f = NewChunkingFSM(m)
 
-		old := logs[7].ChunkInfo.NumChunks
-		logs[7].ChunkInfo.NumChunks = 8
+		old := logs[7].Extensions
+		var ci ChunkInfo
+		if err := proto.Unmarshal(logs[7].Extensions, &ci); err != nil {
+			t.Fatal(err)
+		}
+		ci.NumChunks = 8
+		if logs[7].Extensions, err = proto.Marshal(&ci); err != nil {
+			t.Fatal(err)
+		}
 
 		var done bool
 		for i, l := range logs {
@@ -247,6 +277,6 @@ func TestFSM_ErrorConditions(t *testing.T) {
 			t.Fatal("expected a difference")
 		}
 
-		logs[7].ChunkInfo.NumChunks = old
+		logs[7].Extensions = old
 	}
 }

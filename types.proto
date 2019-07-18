@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option go_package = "github.com/hashicorp/go-raft-chunking";
+option go_package = "chunking";
 
-package chunking;
+package github_com_hashicorp_go_raft_chunking;
 
 message ChunkInfo {
 	// OpNum is the ID of the op, used to ensure values are applied to the
@@ -16,4 +16,8 @@ message ChunkInfo {
 	// NumChunks is used to check whether all chunks have been received and
 	// reconstruction should be attempted
 	uint32 num_chunks = 3;
+
+	// NextExtensions holds inner extensions information for the next layer
+	// down of Apply
+	bytes next_extensions = 4;
 }

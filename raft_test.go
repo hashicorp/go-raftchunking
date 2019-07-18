@@ -25,7 +25,13 @@ func TestRaftStability_Large_Values(t *testing.T) {
 		return ret
 	}
 
-	c := raft.MakeClusterCustomFSM(3, t, raft.DefaultConfig(), fsmFunc)
+	c := raft.MakeClusterCustom(t, &raft.MakeClusterOpts{
+		Peers:           3,
+		Bootstrap:       true,
+		Conf:            raft.DefaultConfig(),
+		MakeFSMFunc:     fsmFunc,
+		LongstopTimeout: 15 * time.Second,
+	})
 	defer c.Close()
 
 	// Should be one leader
@@ -54,7 +60,7 @@ func TestRaftStability_Large_Values(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			future := ChunkingApply(data, 5*time.Second, leader.ApplyWithLog)
+			future := ChunkingApply(data, nil, 5*time.Second, leader.ApplyWithLog)
 			if err := future.Error(); err != nil {
 				c.FailNowf("[ERR] err: %v", err)
 			}

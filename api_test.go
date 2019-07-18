@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-test/deep"
+	proto "github.com/golang/protobuf/proto"
 	"github.com/hashicorp/raft"
 )
 
@@ -31,7 +32,7 @@ func chunkData(t *testing.T) ([]byte, []raft.Log) {
 		return raft.ApplyFuture(nil)
 	}
 
-	ChunkingApply(data, dur, applyFunc)
+	ChunkingApply(data, nil, dur, applyFunc)
 
 	return data, logs
 }
@@ -39,17 +40,21 @@ func chunkData(t *testing.T) ([]byte, []raft.Log) {
 func TestApplyChunking(t *testing.T) {
 	data, logs := chunkData(t)
 
-	var opID uint64
+	var opNum uint64
 	var finalData []byte
 	for i, l := range logs {
+		var ci ChunkInfo
+		if err := proto.Unmarshal(l.Extensions, &ci); err != nil {
+			t.Fatal(err)
+		}
 		if i == 0 {
-			opID = l.ChunkInfo.OpID
+			opNum = ci.OpNum
 		}
-		if l.ChunkInfo.OpID == 0 || l.ChunkInfo.OpID != opID {
-			t.Fatalf("bad opid: %d", l.ChunkInfo.OpID)
+		if ci.OpNum == 0 || ci.OpNum != opNum {
+			t.Fatalf("bad op num: %d", ci.OpNum)
 		}
-		if l.ChunkInfo.SequenceNum != i {
-			t.Fatalf("bad seqnum; expected %d, got %d", i, l.ChunkInfo.SequenceNum)
+		if ci.SequenceNum != uint32(i) {
+			t.Fatalf("bad seqnum; expected %d, got %d", i, ci.SequenceNum)
 		}
 		finalData = append(finalData, l.Data...)
 	}
