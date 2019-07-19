@@ -31,7 +31,7 @@ func TestRaftStability_Large_Values(t *testing.T) {
 		Bootstrap:       true,
 		Conf:            raft.DefaultConfig(),
 		MakeFSMFunc:     fsmFunc,
-		LongstopTimeout: 15 * time.Second,
+		LongstopTimeout: 20 * time.Second,
 	})
 	defer c.Close()
 
