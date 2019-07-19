@@ -126,6 +126,8 @@ func (c *ChunkingFSM) Restore(rc io.ReadCloser) error {
 	return c.underlying.Restore(rc)
 }
 
+// Note: this is used in tests via the Raft package test helper functions, even
+// if it's not used in client code
 func (c *ChunkingFSM) Underlying() raft.FSM {
 	return c.underlying
 }
