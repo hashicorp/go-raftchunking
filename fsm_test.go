@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-test/deep"
 	proto "github.com/golang/protobuf/proto"
+	"github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/raft"
 	"github.com/kr/pretty"
 )
@@ -77,7 +78,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 		f = NewChunkingFSM(m)
 
 		old := logs[1].Extensions
-		var ci ChunkInfo
+		var ci types.ChunkInfo
 		if err := proto.Unmarshal(logs[1].Extensions, &ci); err != nil {
 			t.Fatal(err)
 		}
@@ -122,7 +123,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 		f = NewChunkingFSM(m)
 
 		old := logs[0].Extensions
-		var ci ChunkInfo
+		var ci types.ChunkInfo
 		if err := proto.Unmarshal(logs[0].Extensions, &ci); err != nil {
 			t.Fatal(err)
 		}
@@ -149,7 +150,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 			f = NewChunkingFSM(m)
 
 			old := logs[1].Extensions
-			var ci ChunkInfo
+			var ci types.ChunkInfo
 			if err := proto.Unmarshal(logs[1].Extensions, &ci); err != nil {
 				t.Fatal(err)
 			}
@@ -236,7 +237,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 		f = NewChunkingFSM(m)
 
 		old := logs[7].Extensions
-		var ci ChunkInfo
+		var ci types.ChunkInfo
 		if err := proto.Unmarshal(logs[7].Extensions, &ci); err != nil {
 			t.Fatal(err)
 		}

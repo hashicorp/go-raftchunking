@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-test/deep"
 	proto "github.com/golang/protobuf/proto"
+	"github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/raft"
 )
 
@@ -43,7 +44,7 @@ func TestApplyChunking(t *testing.T) {
 	var opNum uint64
 	var finalData []byte
 	for i, l := range logs {
-		var ci ChunkInfo
+		var ci types.ChunkInfo
 		if err := proto.Unmarshal(l.Extensions, &ci); err != nil {
 			t.Fatal(err)
 		}

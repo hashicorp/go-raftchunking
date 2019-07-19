@@ -10,6 +10,7 @@ import (
 
 	proto "github.com/golang/protobuf/proto"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/raft"
 )
 
@@ -129,7 +130,7 @@ func ChunkingApply(cmd, extensions []byte, timeout time.Duration, applyFunc Appl
 
 	// Create the underlying chunked logs
 	for i, chunk := range byteChunks {
-		chunkInfo := &ChunkInfo{
+		chunkInfo := &types.ChunkInfo{
 			OpNum:       opNum,
 			SequenceNum: uint32(i),
 			NumChunks:   uint32(len(byteChunks)),

@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/raft"
 )
 
@@ -47,7 +48,7 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 		return c.underlying.Apply(l)
 	}
 
-	var ci ChunkInfo
+	var ci types.ChunkInfo
 	if err := proto.Unmarshal(l.Extensions, &ci); err != nil {
 		return errwrap.Wrapf("error unmarshaling chunk info: {{err}}", err)
 	}
