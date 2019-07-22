@@ -66,7 +66,7 @@ func TestRaftStability_Large_Values(t *testing.T) {
 			for atomic.LoadUint32(&numStarted) != uint32(len(dataBlocks)) {
 				time.Sleep(time.Microsecond)
 			}
-			future := ChunkingApply(data, nil, 5*time.Second, leader.ApplyWithLog)
+			future := ChunkingApply(data, nil, 5*time.Second, leader.ApplyLog)
 			if err := future.Error(); err != nil {
 				c.FailNowf("[ERR] err: %v", err)
 			}
