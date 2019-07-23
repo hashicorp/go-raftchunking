@@ -21,7 +21,7 @@ func TestRaftStability_Large_Values(t *testing.T) {
 	fsmFunc := func() raft.FSM {
 		ret := NewChunkingFSM(&raft.MockFSM{})
 		if someFSM == nil {
-			someFSM = ret
+			someFSM = ret.(*ChunkingFSM)
 		}
 		return ret
 	}

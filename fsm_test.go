@@ -75,7 +75,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 	// OpNum of zero
 	{
 		m = new(MockFSM)
-		f = NewChunkingFSM(m)
+		f = NewChunkingFSM(m).(*ChunkingFSM)
 
 		old := logs[1].Extensions
 		var ci types.ChunkInfo
@@ -120,7 +120,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 	// Invalid sequence number
 	{
 		m = new(MockFSM)
-		f = NewChunkingFSM(m)
+		f = NewChunkingFSM(m).(*ChunkingFSM)
 
 		old := logs[0].Extensions
 		var ci types.ChunkInfo
@@ -147,7 +147,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 	{
 		seqNumReplacement := func(seqNum uint32) {
 			m = new(MockFSM)
-			f = NewChunkingFSM(m)
+			f = NewChunkingFSM(m).(*ChunkingFSM)
 
 			old := logs[1].Extensions
 			var ci types.ChunkInfo
@@ -196,7 +196,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 	// Term changes
 	{
 		m = new(MockFSM)
-		f = NewChunkingFSM(m)
+		f = NewChunkingFSM(m).(*ChunkingFSM)
 
 		old := logs[1].Term
 		logs[1].Term = 5
@@ -234,7 +234,7 @@ func TestFSM_ErrorConditions(t *testing.T) {
 	// Mismatched data (NumChunks is incorrect)
 	{
 		m = new(MockFSM)
-		f = NewChunkingFSM(m)
+		f = NewChunkingFSM(m).(*ChunkingFSM)
 
 		old := logs[7].Extensions
 		var ci types.ChunkInfo
