@@ -27,7 +27,7 @@ func (m *MockFSM) Restore(inp io.ReadCloser) error {
 
 func TestFSM_Basic(t *testing.T) {
 	m := new(MockFSM)
-	f := NewChunkingFSM(m)
+	f := NewChunkingFSM(m, nil)
 
 	data, logs := chunkData(t)
 
@@ -64,7 +64,7 @@ func TestFSM_Basic(t *testing.T) {
 
 func TestFSM_CurrentState(t *testing.T) {
 	m := new(MockFSM)
-	f := NewChunkingFSM(m).(*ChunkingFSM)
+	f := NewChunkingFSM(m, nil).(*ChunkingFSM)
 
 	data, logs := chunkData(t)
 
@@ -90,7 +90,11 @@ func TestFSM_CurrentState(t *testing.T) {
 	}
 
 	var opCount int
-	for _, v := range f.opMap {
+	store, err := f.store.GetAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range store {
 		opCount++
 		if opCount > 1 {
 			t.Fatalf("unexpected opcount: %d", opCount)
@@ -111,7 +115,7 @@ func TestFSM_CurrentState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if diff := deep.Equal(f.opMap, currState); diff != nil {
+	if diff := deep.Equal(store, currState); diff != nil {
 		t.Fatal(diff)
 	}
 

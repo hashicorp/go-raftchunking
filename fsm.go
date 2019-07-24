@@ -7,24 +7,14 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/raft"
-	"github.com/mitchellh/copystructure"
 )
 
 var _ raft.FSM = (*ChunkingFSM)(nil)
 var _ raft.ConfigurationStore = (*ChunkingConfigurationStore)(nil)
 
-// ChunkInfo holds chunk information
-type ChunkInfo struct {
-	Data []byte
-}
-
-// ChunkMap represents a set of data chunks. We use ChunkInfo with Data instead
-// of bare []byte in case there is a need to extend this info later.
-type ChunkMap map[uint64][]*ChunkInfo
-
 type ChunkingFSM struct {
 	underlying raft.FSM
-	opMap      ChunkMap
+	store      ChunkStorage
 	lastTerm   uint64
 }
 
@@ -33,21 +23,27 @@ type ChunkingConfigurationStore struct {
 	underlyingConfigurationStore raft.ConfigurationStore
 }
 
-func NewChunkingFSM(underlying raft.FSM) raft.FSM {
+func NewChunkingFSM(underlying raft.FSM, store ChunkStorage) raft.FSM {
 	ret := &ChunkingFSM{
 		underlying: underlying,
-		opMap:      make(ChunkMap),
+		store:      store,
+	}
+	if store == nil {
+		ret.store = NewInmemChunkStorage()
 	}
 	return ret
 }
 
-func NewChunkingConfigurationStore(underlying raft.ConfigurationStore) raft.ConfigurationStore {
+func NewChunkingConfigurationStore(underlying raft.ConfigurationStore, store ChunkStorage) raft.ConfigurationStore {
 	ret := &ChunkingConfigurationStore{
 		ChunkingFSM: &ChunkingFSM{
 			underlying: underlying,
-			opMap:      make(ChunkMap),
+			store:      store,
 		},
 		underlyingConfigurationStore: underlying,
+	}
+	if store == nil {
+		ret.ChunkingFSM.store = NewInmemChunkStorage()
 	}
 	return ret
 }
@@ -66,7 +62,9 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 		// then any client of (Consul, Vault, etc.) should then retry the full
 		// chunking operation automatically, which will be under a different
 		// opnum. So it should be safe in this case to clear the map.
-		c.opMap = make(ChunkMap)
+		if err := c.store.ClearAll(); err != nil {
+			return err
+		}
 		c.lastTerm = l.Term
 	}
 
@@ -75,35 +73,31 @@ func (c *ChunkingFSM) Apply(l *raft.Log) interface{} {
 	if err := proto.Unmarshal(l.Extensions, &ci); err != nil {
 		return errwrap.Wrapf("error unmarshaling chunk info: {{err}}", err)
 	}
-	opNum := ci.OpNum
-	seqNum := ci.SequenceNum
 
-	// Look up existing chunks; if not existing, make placeholders in the slice
-	chunks, ok := c.opMap[opNum]
-	if !ok {
-		chunks = make([]*ChunkInfo, ci.NumChunks)
-		c.opMap[opNum] = chunks
+	// Store the current chunk and find out if all chunks have arrived
+	done, err := c.store.StoreChunk(&ChunkInfo{
+		OpNum:       ci.OpNum,
+		SequenceNum: ci.SequenceNum,
+		NumChunks:   ci.NumChunks,
+		Data:        l.Data,
+	})
+	if err != nil {
+		return err
+	}
+	if !done {
+		return nil
 	}
 
-	// Insert the data
-	chunks[seqNum] = &ChunkInfo{Data: l.Data}
-
-	for _, chunk := range chunks {
-		// Check for nil, but also check data length in case it ends up
-		// unmarshaling weirdly for some reason where it makes a new struct
-		// instead of keeping the pointer nil
-		if chunk == nil || len(chunk.Data) == 0 {
-			// Not done yet, so return
-			return nil
-		}
+	// All chunks are here; get the full set and clear storage of the op
+	chunks, err := c.store.FinalizeOp(ci.OpNum)
+	if err != nil {
+		return err
 	}
 
 	finalData := make([]byte, 0, len(chunks)*raft.SuggestedMaxDataSize)
-
 	for _, chunk := range chunks {
 		finalData = append(finalData, chunk.Data...)
 	}
-	delete(c.opMap, opNum)
 
 	// Use the latest log's values with the final data
 	logToApply := &raft.Log{
@@ -132,11 +126,7 @@ func (c *ChunkingFSM) Underlying() raft.FSM {
 }
 
 func (c *ChunkingFSM) CurrentState() (ChunkMap, error) {
-	snapMap, err := copystructure.Copy(c.opMap)
-	if err != nil {
-		return nil, err
-	}
-	return snapMap.(ChunkMap), nil
+	return c.store.GetAll()
 }
 
 func (c *ChunkingConfigurationStore) StoreConfiguration(index uint64, configuration raft.Configuration) {
