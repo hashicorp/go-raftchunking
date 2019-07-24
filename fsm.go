@@ -126,7 +126,7 @@ func (c *ChunkingFSM) Underlying() raft.FSM {
 }
 
 func (c *ChunkingFSM) CurrentState() (ChunkMap, error) {
-	return c.store.GetAll()
+	return c.store.GetState()
 }
 
 func (c *ChunkingConfigurationStore) StoreConfiguration(index uint64, configuration raft.Configuration) {

@@ -15,8 +15,8 @@ type ChunkStorage interface {
 	// and ignoring the non-error result.
 	FinalizeOp(uint64) ([]*ChunkInfo, error)
 
-	// GetAll gets all currently tracked ops, for snapshotting
-	GetAll() (ChunkMap, error)
+	// GetState gets all currently tracked ops, for snapshotting
+	GetState() (ChunkMap, error)
 
 	// ClearAll clears all currently tracked ops
 	ClearAll() error
@@ -74,7 +74,7 @@ func (i *InmemChunkStorage) FinalizeOp(opNum uint64) ([]*ChunkInfo, error) {
 	return ret, nil
 }
 
-func (i *InmemChunkStorage) GetAll() (ChunkMap, error) {
+func (i *InmemChunkStorage) GetState() (ChunkMap, error) {
 	ret, err := copystructure.Copy(i.chunks)
 	if err != nil {
 		return nil, err

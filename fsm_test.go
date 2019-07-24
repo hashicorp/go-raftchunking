@@ -90,7 +90,7 @@ func TestFSM_CurrentState(t *testing.T) {
 	}
 
 	var opCount int
-	store, err := f.store.GetAll()
+	store, err := f.store.GetState()
 	if err != nil {
 		t.Fatal(err)
 	}
