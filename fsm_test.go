@@ -94,7 +94,7 @@ func TestFSM_CurrentState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, v := range store {
+	for _, v := range store.ChunkMap {
 		opCount++
 		if opCount > 1 {
 			t.Fatalf("unexpected opcount: %d", opCount)

@@ -125,12 +125,12 @@ func (c *ChunkingFSM) Underlying() raft.FSM {
 	return c.underlying
 }
 
-func (c *ChunkingFSM) CurrentState() (ChunkMap, error) {
+func (c *ChunkingFSM) CurrentState() (*State, error) {
 	return c.store.GetState()
 }
 
-func (c *ChunkingFSM) RestoreState(chunks ChunkMap) error {
-	return c.store.RestoreState(chunks)
+func (c *ChunkingFSM) RestoreState(state *State) error {
+	return c.store.RestoreState(state)
 }
 
 func (c *ChunkingConfigurationStore) StoreConfiguration(index uint64, configuration raft.Configuration) {
