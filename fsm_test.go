@@ -64,7 +64,7 @@ func TestFSM_Basic(t *testing.T) {
 
 func TestFSM_CurrentState(t *testing.T) {
 	m := new(MockFSM)
-	f := NewChunkingFSM(m, nil).(*ChunkingFSM)
+	f := NewChunkingFSM(m, nil)
 
 	data, logs := chunkData(t)
 

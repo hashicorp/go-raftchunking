@@ -23,7 +23,7 @@ type ChunkingConfigurationStore struct {
 	underlyingConfigurationStore raft.ConfigurationStore
 }
 
-func NewChunkingFSM(underlying raft.FSM, store ChunkStorage) raft.FSM {
+func NewChunkingFSM(underlying raft.FSM, store ChunkStorage) *ChunkingFSM {
 	ret := &ChunkingFSM{
 		underlying: underlying,
 		store:      store,
@@ -34,7 +34,7 @@ func NewChunkingFSM(underlying raft.FSM, store ChunkStorage) raft.FSM {
 	return ret
 }
 
-func NewChunkingConfigurationStore(underlying raft.ConfigurationStore, store ChunkStorage) raft.ConfigurationStore {
+func NewChunkingConfigurationStore(underlying raft.ConfigurationStore, store ChunkStorage) *ChunkingConfigurationStore {
 	ret := &ChunkingConfigurationStore{
 		ChunkingFSM: &ChunkingFSM{
 			underlying: underlying,
