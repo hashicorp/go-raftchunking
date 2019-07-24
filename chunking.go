@@ -90,6 +90,12 @@ func (i *InmemChunkStorage) GetState() (*State, error) {
 }
 
 func (i *InmemChunkStorage) RestoreState(state *State) error {
+	// If passed in explicit emptiness, set state to empty
+	if state == nil || len(state.ChunkMap) == 0 {
+		i.chunks = make(ChunkMap)
+		return nil
+	}
+
 	stateRaw, err := copystructure.Copy(state.ChunkMap)
 	if err != nil {
 		return err
