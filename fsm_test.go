@@ -40,11 +40,11 @@ func TestFSM_Basic(t *testing.T) {
 			}
 		case error:
 			t.Fatal(r.(error))
-		case int:
+		case ChunkingSuccess:
 			if i != len(logs)-1 {
 				t.Fatal("got int back before apply should have happened")
 			}
-			if r.(int) != 1 {
+			if r.(ChunkingSuccess).Response.(int) != 1 {
 				t.Fatalf("unexpected number of logs back: %d", r.(int))
 			}
 		default:
@@ -119,9 +119,13 @@ func TestFSM_StateHandling(t *testing.T) {
 	}
 
 	r := f.Apply(&(logs[len(logs)-1]))
-	rInt, ok := r.(int)
+	rRaw, ok := r.(ChunkingSuccess)
 	if !ok {
 		t.Fatalf("wrong type back: %T, value is %#v", r, r)
+	}
+	rInt, ok := rRaw.Response.(int)
+	if !ok {
+		t.Fatalf("wrong type back: %T, value is %#v", rRaw, rRaw)
 	}
 	if rInt != 1 {
 		t.Fatalf("unexpected number of logs back: %d", rInt)
