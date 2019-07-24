@@ -16,10 +16,10 @@ type ChunkStorage interface {
 	FinalizeOp(uint64) ([]*ChunkInfo, error)
 
 	// GetState gets all currently tracked ops, for snapshotting
-	GetState() (*State, error)
+	GetChunks() (ChunkMap, error)
 
 	// RestoreState restores the current FSM state from a map
-	RestoreState(*State) error
+	RestoreChunks(ChunkMap) error
 
 	// ClearAll clears all currently tracked ops
 	ClearAll() error
@@ -81,26 +81,26 @@ func (i *InmemChunkStorage) FinalizeOp(opNum uint64) ([]*ChunkInfo, error) {
 	return ret, nil
 }
 
-func (i *InmemChunkStorage) GetState() (*State, error) {
+func (i *InmemChunkStorage) GetChunks() (ChunkMap, error) {
 	ret, err := copystructure.Copy(i.chunks)
 	if err != nil {
 		return nil, err
 	}
-	return &State{ChunkMap: ret.(ChunkMap)}, nil
+	return ret.(ChunkMap), nil
 }
 
-func (i *InmemChunkStorage) RestoreState(state *State) error {
+func (i *InmemChunkStorage) RestoreChunks(chunks ChunkMap) error {
 	// If passed in explicit emptiness, set state to empty
-	if state == nil || len(state.ChunkMap) == 0 {
+	if chunks == nil || len(chunks) == 0 {
 		i.chunks = make(ChunkMap)
 		return nil
 	}
 
-	stateRaw, err := copystructure.Copy(state.ChunkMap)
+	chunksCopy, err := copystructure.Copy(chunks)
 	if err != nil {
 		return err
 	}
-	i.chunks = stateRaw.(ChunkMap)
+	i.chunks = chunksCopy.(ChunkMap)
 	return nil
 }
 

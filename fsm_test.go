@@ -62,7 +62,7 @@ func TestFSM_Basic(t *testing.T) {
 	}
 }
 
-func TestFSM_CurrentState(t *testing.T) {
+func TestFSM_StateHandling(t *testing.T) {
 	m := new(MockFSM)
 	f := NewChunkingFSM(m, nil)
 
@@ -90,11 +90,11 @@ func TestFSM_CurrentState(t *testing.T) {
 	}
 
 	var opCount int
-	store, err := f.store.GetState()
+	chunks, err := f.store.GetChunks()
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, v := range store.ChunkMap {
+	for _, v := range chunks {
 		opCount++
 		if opCount > 1 {
 			t.Fatalf("unexpected opcount: %d", opCount)
@@ -114,8 +114,7 @@ func TestFSM_CurrentState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if diff := deep.Equal(store, currState); diff != nil {
+	if diff := deep.Equal(chunks, currState.ChunkMap); diff != nil {
 		t.Fatal(diff)
 	}
 
@@ -134,6 +133,26 @@ func TestFSM_CurrentState(t *testing.T) {
 	}
 
 	if diff := deep.Equal(data, finalData); diff != nil {
+		t.Fatal(diff)
+	}
+
+	newState, err := f.CurrentState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := deep.Equal(chunks, newState.ChunkMap); diff == nil {
+		t.Fatal("expected current state to not match chunked state")
+	}
+
+	if err := f.RestoreState(currState); err != nil {
+		t.Fatal(err)
+	}
+
+	newState, err = f.CurrentState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := deep.Equal(chunks, newState.ChunkMap); diff != nil {
 		t.Fatal(diff)
 	}
 }
