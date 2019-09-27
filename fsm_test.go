@@ -8,6 +8,19 @@ import (
 	"github.com/hashicorp/raft"
 )
 
+type MockBatchFSM struct {
+	*MockFSM
+}
+
+func (m *MockBatchFSM) ApplyBatch(logs []*raft.Log) []interface{} {
+	responses := make([]interface{}, len(logs))
+	for i, l := range logs {
+		responses[i] = m.Apply(l)
+	}
+
+	return responses
+}
+
 type MockFSM struct {
 	logs [][]byte
 }
@@ -32,7 +45,7 @@ func TestFSM_Basic(t *testing.T) {
 	data, logs := chunkData(t)
 
 	for i, l := range logs {
-		r := f.Apply(&l)
+		r := f.Apply(l)
 		switch r.(type) {
 		case nil:
 			if i == len(logs)-1 {
@@ -72,7 +85,7 @@ func TestFSM_StateHandling(t *testing.T) {
 		if i == len(logs)-1 {
 			break
 		}
-		r := f.Apply(&l)
+		r := f.Apply(l)
 		switch r.(type) {
 		case nil:
 		case error:
@@ -118,7 +131,7 @@ func TestFSM_StateHandling(t *testing.T) {
 		t.Fatal(diff)
 	}
 
-	r := f.Apply(&(logs[len(logs)-1]))
+	r := f.Apply(logs[len(logs)-1])
 	rRaw, ok := r.(ChunkingSuccess)
 	if !ok {
 		t.Fatalf("wrong type back: %T, value is %#v", r, r)
@@ -159,4 +172,95 @@ func TestFSM_StateHandling(t *testing.T) {
 	if diff := deep.Equal(chunks, newState.ChunkMap); diff != nil {
 		t.Fatal(diff)
 	}
+}
+
+func TestBatchingFSM(t *testing.T) {
+	m := &MockBatchFSM{
+		MockFSM: new(MockFSM),
+	}
+	f := NewChunkingBatchingFSM(m, nil)
+	_, logs := chunkData(t)
+
+	responses := f.ApplyBatch(logs)
+	for i, r := range responses {
+		switch r.(type) {
+		case nil:
+			if i == len(logs)-1 {
+				t.Fatal("got nil, expected ChunkingSuccess")
+			}
+		case error:
+			t.Fatal(r.(error))
+		case ChunkingSuccess:
+			if i != len(logs)-1 {
+				t.Fatal("got int back before apply should have happened")
+			}
+			if r.(ChunkingSuccess).Response.(int) != 1 {
+				t.Fatalf("unexpected number of logs back: %d", r.(int))
+			}
+		default:
+			t.Fatal("unexpected return value")
+		}
+	}
+}
+
+func TestBatchingFSM_MixedData(t *testing.T) {
+	m := &MockBatchFSM{
+		MockFSM: new(MockFSM),
+	}
+	f := NewChunkingBatchingFSM(m, nil)
+	_, logs := chunkData(t)
+
+	lastSeen := 0
+	for i := range logs {
+		batch := make([]*raft.Log, len(logs))
+		for j := 0; j < len(logs); j++ {
+			index := uint64((i * len(logs)) + j)
+			if i == j {
+				l := logs[i]
+				l.Index = index
+				batch[j] = l
+			} else {
+				batch[j] = &raft.Log{
+					Index: index,
+					Data:  []byte("test"),
+					Type:  raft.LogCommand,
+				}
+			}
+		}
+
+		responses := f.ApplyBatch(batch)
+		for j, r := range responses {
+			switch r.(type) {
+			case nil:
+				if j != i {
+					t.Fatal("got unexpected nil")
+				}
+			case error:
+				t.Fatal(r.(error))
+			case int:
+				if j == i {
+					t.Fatal("got unexpected int")
+				}
+				if r.(int) != lastSeen+1 {
+					t.Fatalf("unexpected number of logs back: %d, expected %d", r.(int), lastSeen+1)
+				}
+
+				lastSeen++
+			case ChunkingSuccess:
+				if i != len(logs)-1 && j != i {
+					t.Fatal("got int back before apply should have happened")
+				}
+				if r.(ChunkingSuccess).Response.(int) != lastSeen+1 {
+					t.Fatalf("unexpected number of logs back: %d", r.(ChunkingSuccess).Response.(int))
+				}
+				lastSeen++
+			default:
+				t.Fatal("unexpected return value")
+			}
+		}
+	}
+	if lastSeen != 11*12+1 {
+		t.Fatalf("unexpected total logs processed: %d", lastSeen)
+	}
+
 }
