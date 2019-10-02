@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/raft"
 )
 
-func chunkData(t *testing.T) ([]byte, []raft.Log) {
+func chunkData(t *testing.T) ([]byte, []*raft.Log) {
 	data := make([]byte, 6000000)
 	n, err := rand.Read(data)
 	if err != nil && err != io.EOF {
@@ -22,14 +22,17 @@ func chunkData(t *testing.T) ([]byte, []raft.Log) {
 		t.Fatalf("expected 6000k bytes to test with, read %d", n)
 	}
 
-	logs := make([]raft.Log, 0)
+	logs := make([]*raft.Log, 0)
 	dur := time.Second
 
+	var index uint64
 	applyFunc := func(l raft.Log, d time.Duration) raft.ApplyFuture {
 		if d != dur {
 			t.Fatalf("expected d to be %v, got %v", time.Second, dur)
 		}
-		logs = append(logs, l)
+		index++
+		l.Index = index
+		logs = append(logs, &l)
 		return raft.ApplyFuture(nil)
 	}
 
