@@ -193,8 +193,8 @@ func (c *ChunkingConfigurationStore) StoreConfiguration(index uint64, configurat
 }
 
 // ApplyBatch applies the logs, handling chunking as needed. The return value will
-// be an array containing either be an error or whatever is returned from the
-// underlying Apply for each log.
+// be an array containing an error or whatever is returned from the underlying
+// Apply for each log.
 func (c *ChunkingBatchingFSM) ApplyBatch(logs []*raft.Log) []interface{} {
 	// responses has a response for each log; their slice index should match.
 	responses := make([]interface{}, len(logs))
