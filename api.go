@@ -8,10 +8,9 @@ import (
 	"io"
 	"time"
 
-	proto "github.com/golang/protobuf/proto"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/raft"
+	proto "google.golang.org/protobuf/proto"
 )
 
 var (
@@ -150,7 +149,7 @@ func ChunkingApply(cmd, extensions []byte, timeout time.Duration, applyFunc Appl
 
 		chunkBytes, err := proto.Marshal(chunkInfo)
 		if err != nil {
-			return errorFuture{err: errwrap.Wrapf("error marshaling chunk info: {{err}}", err)}
+			return errorFuture{err: fmt.Errorf("error marshaling chunk info: %w", err)}
 		}
 		logs = append(logs, raft.Log{
 			Data:       chunk,

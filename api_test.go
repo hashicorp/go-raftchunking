@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/go-test/deep"
-	proto "github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/raft"
+	proto "google.golang.org/protobuf/proto"
 )
 
 func chunkData(t *testing.T) ([]byte, []*raft.Log) {

@@ -3,4 +3,10 @@
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
 
 proto:
-	protoc --go_out=paths=source_relative:. types/types.proto
+	buf generate
+	
+proto-lint:
+	buf lint
+
+proto-format:
+	buf format -w
