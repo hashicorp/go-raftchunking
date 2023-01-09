@@ -46,19 +46,19 @@ func TestFSM_Basic(t *testing.T) {
 
 	for i, l := range logs {
 		r := f.Apply(l)
-		switch r.(type) {
+		switch r := r.(type) {
 		case nil:
 			if i == len(logs)-1 {
 				t.Fatal("expected non-nil value for last log apply")
 			}
 		case error:
-			t.Fatal(r.(error))
+			t.Fatal(r)
 		case ChunkingSuccess:
 			if i != len(logs)-1 {
 				t.Fatal("got int back before apply should have happened")
 			}
-			if r.(ChunkingSuccess).Response.(int) != 1 {
-				t.Fatalf("unexpected number of logs back: %d", r.(int))
+			if r.Response.(int) != 1 {
+				t.Fatalf("unexpected number of logs back: %d", r.Response.(int))
 			}
 		default:
 			t.Fatal("unexpected return value")
@@ -86,16 +86,16 @@ func TestFSM_StateHandling(t *testing.T) {
 			break
 		}
 		r := f.Apply(l)
-		switch r.(type) {
+		switch r := r.(type) {
 		case nil:
 		case error:
-			t.Fatal(r.(error))
+			t.Fatal(r)
 		case int:
 			if i != len(logs)-1 {
 				t.Fatal("got int back before apply should have happened")
 			}
-			if r.(int) != 1 {
-				t.Fatalf("unexpected number of logs back: %d", r.(int))
+			if r != 1 {
+				t.Fatalf("unexpected number of logs back: %d", r)
 			}
 		default:
 			t.Fatal("unexpected return value")
@@ -183,19 +183,19 @@ func TestBatchingFSM(t *testing.T) {
 
 	responses := f.ApplyBatch(logs)
 	for i, r := range responses {
-		switch r.(type) {
+		switch r := r.(type) {
 		case nil:
 			if i == len(logs)-1 {
 				t.Fatal("got nil, expected ChunkingSuccess")
 			}
 		case error:
-			t.Fatal(r.(error))
+			t.Fatal(r)
 		case ChunkingSuccess:
 			if i != len(logs)-1 {
 				t.Fatal("got int back before apply should have happened")
 			}
-			if r.(ChunkingSuccess).Response.(int) != 1 {
-				t.Fatalf("unexpected number of logs back: %d", r.(int))
+			if r.Response.(int) != 1 {
+				t.Fatalf("unexpected number of logs back: %d", r.Response.(int))
 			}
 		default:
 			t.Fatal("unexpected return value")
@@ -230,19 +230,19 @@ func TestBatchingFSM_MixedData(t *testing.T) {
 
 		responses := f.ApplyBatch(batch)
 		for j, r := range responses {
-			switch r.(type) {
+			switch r := r.(type) {
 			case nil:
 				if j != i {
 					t.Fatal("got unexpected nil")
 				}
 			case error:
-				t.Fatal(r.(error))
+				t.Fatal(r)
 			case int:
 				if j == i {
 					t.Fatal("got unexpected int")
 				}
-				if r.(int) != lastSeen+1 {
-					t.Fatalf("unexpected number of logs back: %d, expected %d", r.(int), lastSeen+1)
+				if r != lastSeen+1 {
+					t.Fatalf("unexpected number of logs back: %d, expected %d", r, lastSeen+1)
 				}
 
 				lastSeen++
@@ -250,8 +250,8 @@ func TestBatchingFSM_MixedData(t *testing.T) {
 				if i != len(logs)-1 && j != i {
 					t.Fatal("got int back before apply should have happened")
 				}
-				if r.(ChunkingSuccess).Response.(int) != lastSeen+1 {
-					t.Fatalf("unexpected number of logs back: %d", r.(ChunkingSuccess).Response.(int))
+				if r.Response.(int) != lastSeen+1 {
+					t.Fatalf("unexpected number of logs back: %d", r.Response.(int))
 				}
 				lastSeen++
 			default:

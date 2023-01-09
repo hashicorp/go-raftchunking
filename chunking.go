@@ -89,7 +89,7 @@ func (i *InmemChunkStorage) GetChunks() (ChunkMap, error) {
 
 func (i *InmemChunkStorage) RestoreChunks(chunks ChunkMap) error {
 	// If passed in explicit emptiness, set state to empty
-	if chunks == nil || len(chunks) == 0 {
+	if len(chunks) == 0 {
 		i.chunks = make(ChunkMap)
 		return nil
 	}

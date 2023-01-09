@@ -60,7 +60,7 @@ func TestRaftStability_Large_Values(t *testing.T) {
 	for _, data := range dataBlocks {
 		// Should be able to apply
 		wg.Add(1)
-		go func() {
+		go func(data []byte) {
 			defer wg.Done()
 			atomic.AddUint32(&numStarted, 1)
 			for atomic.LoadUint32(&numStarted) != uint32(len(dataBlocks)) {
@@ -70,7 +70,7 @@ func TestRaftStability_Large_Values(t *testing.T) {
 			if err := future.Error(); err != nil {
 				c.FailNowf("[ERR] err: %v", err)
 			}
-		}()
+		}(data)
 	}
 
 	wg.Wait()

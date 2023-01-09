@@ -1,12 +1,12 @@
 package raftchunking
 
 import (
+	"fmt"
 	"io"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-raftchunking/types"
 	"github.com/hashicorp/raft"
+	"google.golang.org/protobuf/proto"
 )
 
 var _ raft.FSM = (*ChunkingFSM)(nil)
@@ -94,7 +94,7 @@ func (c *ChunkingFSM) applyChunk(l *raft.Log) (*raft.Log, error) {
 	// Get chunk info from extensions
 	var ci types.ChunkInfo
 	if err := proto.Unmarshal(l.Extensions, &ci); err != nil {
-		return nil, errwrap.Wrapf("error unmarshaling chunk info: {{err}}", err)
+		return nil, fmt.Errorf("error unmarshaling chunk info: %w", err)
 	}
 
 	// Store the current chunk and find out if all chunks have arrived
