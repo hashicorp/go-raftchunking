@@ -71,5 +71,5 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
       # protobuf linting
-      - uses: bufbuild/buf-setup-action@v1 # TSCCR: no entry for repository "bufbuild/buf-setup-action"
-      - uses: bufbuild/buf-lint-action@v1 # TSCCR: no entry for repository "bufbuild/buf-lint-action"
+      - uses: bufbuild/buf-setup-action@eb60cd0de4f14f1f57cf346916b8cd69a9e7ed0b # v1.26.1
+      - uses: bufbuild/buf-lint-action@bd48f53224baaaf0fc55de9a913e7680ca6dbea4 # v1.0.3
