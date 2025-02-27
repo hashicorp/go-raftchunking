@@ -1,6 +1,6 @@
 module github.com/hashicorp/go-raftchunking
 
-go 1.19.4
+go 1.23
 
 require (
 	github.com/go-test/deep v1.1.0

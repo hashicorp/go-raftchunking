@@ -4,7 +4,7 @@ on:
   pull_request:
 
 env:
-  GO_VERSION: "1.19.4"
+  GO_VERSION: "1.23"
 
 # This workflow runs for not-yet-reviewed external contributions and so it
 # intentionally has no write access and only limited read access to the
@@ -80,7 +80,7 @@ jobs:
             echo >&2 "ERROR: go.mod/go.sum are not up-to-date. Run 'go mod tidy' and then commit the updated files."
             exit 1
           fi
-          
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
       # protobuf linting
