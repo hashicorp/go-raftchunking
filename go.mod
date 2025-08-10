@@ -6,7 +6,7 @@ require (
 	github.com/go-test/deep v1.1.1
 	github.com/hashicorp/raft v1.7.3
 	github.com/mitchellh/copystructure v1.2.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.7
 )
 
 require (
