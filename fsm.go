@@ -62,7 +62,7 @@ func NewChunkingBatchingFSM(underlying raft.BatchingFSM, store ChunkStorage) *Ch
 		underlyingBatchingFSM: underlying,
 	}
 	if store == nil {
-		ret.ChunkingFSM.store = NewInmemChunkStorage()
+		ret.store = NewInmemChunkStorage()
 	}
 	return ret
 }
@@ -76,7 +76,7 @@ func NewChunkingConfigurationStore(underlying raft.ConfigurationStore, store Chu
 		underlyingConfigurationStore: underlying,
 	}
 	if store == nil {
-		ret.ChunkingFSM.store = NewInmemChunkStorage()
+		ret.store = NewInmemChunkStorage()
 	}
 	return ret
 }
