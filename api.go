@@ -114,11 +114,7 @@ func ChunkingApply(cmd, extensions []byte, timeout time.Duration, applyFunc Appl
 	// the slow part anyways.
 	reader := bytes.NewReader(cmd)
 	remain := reader.Len()
-	for {
-		if remain <= 0 {
-			break
-		}
-
+	for remain > 0 {
 		if remain > ChunkSize {
 			remain = ChunkSize
 		}
